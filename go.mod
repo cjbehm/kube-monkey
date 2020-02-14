@@ -1,6 +1,6 @@
 module github.com/asobti/kube-monkey
 
-go 1.11
+go 1.13
 
 require (
 	github.com/bouk/monkey v0.0.0-00010101000000-000000000000
