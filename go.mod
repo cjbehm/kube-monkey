@@ -7,6 +7,8 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fsnotify/fsnotify v1.4.2
 	github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680
+	github.com/go-kit/kit v0.9.0
+	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/gogo/protobuf v0.0.0-20170330071051-c0656edd0d9e
 	github.com/golang/glog v0.0.0-20141105023935-44145f04b68c
 	github.com/golang/protobuf v0.0.0-20171021043952-1643683e1b54

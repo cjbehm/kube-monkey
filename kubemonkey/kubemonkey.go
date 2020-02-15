@@ -11,6 +11,7 @@ import (
 	"github.com/asobti/kube-monkey/config"
 	"github.com/asobti/kube-monkey/kubernetes"
 	"github.com/asobti/kube-monkey/schedule"
+	"github.com/asobti/kube-monkey/scheduleService"
 )
 
 func durationToNextRun(runhour int, loc *time.Location) time.Duration {
@@ -32,6 +33,8 @@ func Run() error {
 		return err
 	}
 
+	scheduleSvc := scheduleService.New()
+	go scheduleService.ServeSchedule(scheduleSvc, 80)
 	for {
 		// Calculate duration to sleep before next run
 		sleepDuration := durationToNextRun(config.RunHour(), config.Timezone())
@@ -41,6 +44,7 @@ func Run() error {
 		if err != nil {
 			glog.Fatal(err.Error())
 		}
+		scheduleSvc.ReplaceSchedule(schedule)
 		schedule.Print()
 		fmt.Println(schedule)
 		ScheduleTerminations(schedule.Entries())
