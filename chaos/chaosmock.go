@@ -78,9 +78,13 @@ func newVictimMock() *victimMock {
 	}
 }
 
-func NewMock() *Chaos {
+func NewMock(t *time.Time) *Chaos {
+	if t == nil {
+		// because you can't take a pointer on a function's return value
+		t = func() *time.Time { t := time.Now(); return &t }()
+	}
 	return &Chaos{
-		killAt: time.Now(),
+		killAt: *t,
 		victim: newVictimMock(),
 	}
 }

@@ -25,7 +25,7 @@ func TestEntries(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	e := chaos.NewMock()
+	e := chaos.NewMock(nil)
 	s := newSchedule()
 
 	s.Add(e)
@@ -46,8 +46,8 @@ func TestStringNoEntries(t *testing.T) {
 
 func TestStringWithEntries(t *testing.T) {
 	s := newSchedule()
-	e1 := chaos.NewMock()
-	e2 := chaos.NewMock()
+	e1 := chaos.NewMock(nil)
+	e2 := chaos.NewMock(nil)
 	s.Add(e1)
 	s.Add(e2)
 
@@ -61,6 +61,30 @@ func TestStringWithEntries(t *testing.T) {
 	schedString = append(schedString, fmt.Sprint(End))
 
 	assert.Equal(t, strings.Join(schedString, "\n"), s.String())
+}
+
+func TestScheduleJSONStringWithNoEntries(t *testing.T) {
+	s := newSchedule()
+	const emptyScheduleJSON = "{\"victims\":[]}"
+
+	bytes, _ := s.MarshalJSON()
+	assert.Equal(t, string(bytes), emptyScheduleJSON)
+}
+
+func TestScheduleJSONStringWithEntries(t *testing.T) {
+	eventTime := time.Now()
+	s := newSchedule()
+	e1 := chaos.NewMock(&eventTime)
+	e2 := chaos.NewMock(&eventTime)
+	s.Add(e1)
+	s.Add(e2)
+
+	const jsonFormat = "{\"victims\":[{\"kind\":\"Pod\",\"namespace\":\"default\",\"name\":\"name\",\"killat\":\"%s\"},{\"kind\":\"Pod\",\"namespace\":\"default\",\"name\":\"name\",\"killat\":\"%s\"}]}"
+	jsonTestString := fmt.Sprintf(jsonFormat, eventTime.Format(DateFormat), eventTime.Format(DateFormat))
+	bytes, _ := s.MarshalJSON()
+
+	jsonResponse := string(bytes)
+	assert.Equal(t, jsonTestString, jsonResponse)
 }
 
 func TestCalculateKillTimeRandom(t *testing.T) {

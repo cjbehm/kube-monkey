@@ -2,10 +2,11 @@ package chaos
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/asobti/kube-monkey/config"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"testing"
 
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -18,7 +19,7 @@ type ChaosTestSuite struct {
 }
 
 func (s *ChaosTestSuite) SetupTest() {
-	s.chaos = NewMock()
+	s.chaos = NewMock(nil)
 	s.client = fake.NewSimpleClientset()
 }
 

@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -34,6 +35,34 @@ func (s *Schedule) Entries() []*chaos.Chaos {
 
 func (s *Schedule) Add(entry *chaos.Chaos) {
 	s.entries = append(s.entries, entry)
+}
+
+func (s *Schedule) MarshalJSON() ([]byte, error) {
+	type victimJSON struct {
+		Kind      string `json:"kind"`
+		Namespace string `json:"namespace"`
+		Name      string `json:"name"`
+		KillAt    string `json:"killat"`
+	}
+	type scheduleJSON struct {
+		Victims []*victimJSON `json:"victims"`
+	}
+
+	victims := []*victimJSON{}
+	for _, chaos := range s.entries {
+		victims = append(victims,
+			&victimJSON{
+				Kind:      chaos.Victim().Kind(),
+				Namespace: chaos.Victim().Namespace(),
+				Name:      chaos.Victim().Name(),
+				KillAt:    chaos.KillAt().Format(DateFormat),
+			})
+	}
+
+	sj := scheduleJSON{Victims: victims}
+	bytes, err := json.Marshal(sj)
+
+	return bytes, err
 }
 
 func (s *Schedule) String() string {
