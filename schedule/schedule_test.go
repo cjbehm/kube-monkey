@@ -8,6 +8,7 @@ import (
 
 	"github.com/asobti/kube-monkey/chaos"
 	"github.com/asobti/kube-monkey/config/param"
+	"github.com/bouk/monkey"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func newSchedule() *Schedule {
-	return &Schedule{}
+	return &Schedule{time.Now(), nil}
 }
 
 func TestEntries(t *testing.T) {
@@ -64,14 +65,22 @@ func TestStringWithEntries(t *testing.T) {
 }
 
 func TestScheduleJSONStringWithNoEntries(t *testing.T) {
+	monkey.Patch(time.Now, func() time.Time {
+		return time.Date(2018, 4, 16, 12, 0, 0, 0, time.UTC)
+	})
+	defer monkey.Unpatch(time.Now)
 	s := newSchedule()
-	const emptyScheduleJSON = "{\"victims\":[]}"
+	const emptyScheduleJSON = `{"generated":"2018-04-16T12:00:00Z","victims":[]}`
 
 	bytes, _ := s.MarshalJSON()
 	assert.Equal(t, string(bytes), emptyScheduleJSON)
 }
 
 func TestScheduleJSONStringWithEntries(t *testing.T) {
+	monkey.Patch(time.Now, func() time.Time {
+		return time.Date(2018, 4, 16, 12, 0, 0, 0, time.UTC)
+	})
+	defer monkey.Unpatch(time.Now)
 	eventTime := time.Now()
 	s := newSchedule()
 	e1 := chaos.NewMock(&eventTime)
@@ -79,7 +88,7 @@ func TestScheduleJSONStringWithEntries(t *testing.T) {
 	s.Add(e1)
 	s.Add(e2)
 
-	const jsonFormat = "{\"victims\":[{\"kind\":\"Pod\",\"namespace\":\"default\",\"name\":\"name\",\"killat\":\"%s\"},{\"kind\":\"Pod\",\"namespace\":\"default\",\"name\":\"name\",\"killat\":\"%s\"}]}"
+	const jsonFormat = `{"generated":"2018-04-16T12:00:00Z","victims":[{"kind":"Pod","namespace":"default","name":"name","killat":"%s"},{"kind":"Pod","namespace":"default","name":"name","killat":"%s"}]}`
 	jsonTestString := fmt.Sprintf(jsonFormat, eventTime.Format(DateFormat), eventTime.Format(DateFormat))
 	bytes, _ := s.MarshalJSON()
 

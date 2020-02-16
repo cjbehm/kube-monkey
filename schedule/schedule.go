@@ -26,7 +26,12 @@ const (
 )
 
 type Schedule struct {
-	entries []*chaos.Chaos
+	generatedAt time.Time
+	entries     []*chaos.Chaos
+}
+
+func EmptySchedule() *Schedule {
+	return &Schedule{time.Now(), nil}
 }
 
 func (s *Schedule) Entries() []*chaos.Chaos {
@@ -45,7 +50,8 @@ func (s *Schedule) MarshalJSON() ([]byte, error) {
 		KillAt    string `json:"killat"`
 	}
 	type scheduleJSON struct {
-		Victims []*victimJSON `json:"victims"`
+		GeneratedAt time.Time     `json:"generated"`
+		Victims     []*victimJSON `json:"victims"`
 	}
 
 	victims := []*victimJSON{}
@@ -59,7 +65,7 @@ func (s *Schedule) MarshalJSON() ([]byte, error) {
 			})
 	}
 
-	sj := scheduleJSON{Victims: victims}
+	sj := scheduleJSON{s.generatedAt, victims}
 	bytes, err := json.Marshal(sj)
 
 	return bytes, err
@@ -97,7 +103,8 @@ func New() (*Schedule, error) {
 	}
 
 	schedule := &Schedule{
-		entries: []*chaos.Chaos{},
+		generatedAt: time.Now(),
+		entries:     []*chaos.Chaos{},
 	}
 
 	for _, victim := range victims {

@@ -13,17 +13,18 @@ import (
 
 	"github.com/asobti/kube-monkey/chaos"
 	"github.com/asobti/kube-monkey/schedule"
+	"github.com/bouk/monkey"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/stretchr/testify/assert"
 )
 
-func newSchedule() *schedule.Schedule {
-	return &schedule.Schedule{}
-}
-
 func TestGetScheduleEmpty(t *testing.T) {
+	monkey.Patch(time.Now, func() time.Time {
+		return time.Date(2018, 4, 16, 12, 0, 0, 0, time.UTC)
+	})
+	defer monkey.Unpatch(time.Now)
 	var sched1 string
-	s := newSchedule()
+	s := schedule.EmptySchedule()
 
 	svc := scheduleService{sync.RWMutex{}, nil}
 	sched1, _ = svc.GetSchedule()
@@ -31,13 +32,17 @@ func TestGetScheduleEmpty(t *testing.T) {
 
 	svc.ReplaceSchedule(s)
 	sched1, _ = svc.GetSchedule()
-	assert.Equal(t, "{\"victims\":[]}", sched1)
+	assert.Equal(t, `{"generated":"2018-04-16T12:00:00Z","victims":[]}`, sched1)
 }
 
 func TestGetSchedule(t *testing.T) {
+	monkey.Patch(time.Now, func() time.Time {
+		return time.Date(2018, 4, 16, 12, 0, 0, 0, time.UTC)
+	})
+	defer monkey.Unpatch(time.Now)
 	var sched1 string
 	now := time.Now()
-	s := newSchedule()
+	s := schedule.EmptySchedule()
 	e1 := chaos.NewMock(&now)
 	s.Add(e1)
 
@@ -45,13 +50,13 @@ func TestGetSchedule(t *testing.T) {
 	sched1, _ = svc.GetSchedule()
 	assert.Equal(
 		t,
-		fmt.Sprintf("{\"victims\":[{\"kind\":\"Pod\",\"namespace\":\"default\",\"name\":\"name\",\"killat\":\"%s\"}]}", now.Format(schedule.DateFormat)),
+		fmt.Sprintf(`{"generated":"2018-04-16T12:00:00Z","victims":[{"kind":"Pod","namespace":"default","name":"name","killat":"%s"}]}`, now.Format(schedule.DateFormat)),
 		sched1,
 	)
 }
 
 func TestReplaceSchedule(t *testing.T) {
-	s := newSchedule()
+	s := schedule.EmptySchedule()
 	e1 := chaos.NewMock(nil)
 	s.Add(e1)
 
@@ -64,7 +69,7 @@ func TestReplaceSchedule(t *testing.T) {
 	assert.NotEqual(t, sched1, sched2)
 	time.Sleep(1 * time.Second)
 
-	s2 := newSchedule()
+	s2 := schedule.EmptySchedule()
 	e2 := chaos.NewMock(nil)
 	s2.Add(e2)
 	svc.ReplaceSchedule(s2)
@@ -73,7 +78,11 @@ func TestReplaceSchedule(t *testing.T) {
 }
 
 func TestEndpointWithNoSchedule(t *testing.T) {
-	sched := newSchedule()
+	monkey.Patch(time.Now, func() time.Time {
+		return time.Date(2018, 4, 16, 12, 0, 0, 0, time.UTC)
+	})
+	defer monkey.Unpatch(time.Now)
+	sched := schedule.EmptySchedule()
 	svc := &scheduleService{sync.RWMutex{}, sched}
 	eps := makeScheduleEndpoint(svc)
 	mux := http.NewServeMux()
@@ -86,7 +95,7 @@ func TestEndpointWithNoSchedule(t *testing.T) {
 	defer srv.Close()
 
 	{
-		want := `{"schedule":{"victims":[]},"asof":`
+		want := `{"schedule":{"generated":"2018-04-16T12:00:00Z","victims":[]},"asof":`
 		req, _ := http.NewRequest("GET", srv.URL+"/schedule", strings.NewReader(""))
 		resp, _ := http.DefaultClient.Do(req)
 		body, _ := ioutil.ReadAll(resp.Body)
@@ -95,7 +104,11 @@ func TestEndpointWithNoSchedule(t *testing.T) {
 }
 
 func TestEndpointWithSchedule(t *testing.T) {
-	sched := newSchedule()
+	monkey.Patch(time.Now, func() time.Time {
+		return time.Date(2018, 4, 16, 12, 0, 0, 0, time.UTC)
+	})
+	defer monkey.Unpatch(time.Now)
+	sched := schedule.EmptySchedule()
 	svc := &scheduleService{sync.RWMutex{}, sched}
 	eps := makeScheduleEndpoint(svc)
 	mux := http.NewServeMux()
@@ -110,7 +123,7 @@ func TestEndpointWithSchedule(t *testing.T) {
 	e := chaos.NewMock(&generatedTime)
 	sched.Add(e)
 	{
-		want := fmt.Sprintf(`{"schedule":{"victims":[{"kind":"Pod","namespace":"default","name":"name","killat":"%s"}]},"asof":`, generatedTime.Format(schedule.DateFormat))
+		want := fmt.Sprintf(`{"schedule":{"generated":"2018-04-16T12:00:00Z","victims":[{"kind":"Pod","namespace":"default","name":"name","killat":"%s"}]},"asof":`, generatedTime.Format(schedule.DateFormat))
 		req, _ := http.NewRequest("GET", srv.URL+"/schedule", strings.NewReader(""))
 		resp, _ := http.DefaultClient.Do(req)
 		body, _ := ioutil.ReadAll(resp.Body)
