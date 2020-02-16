@@ -1,13 +1,19 @@
 package scheduleService
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/asobti/kube-monkey/chaos"
 	"github.com/asobti/kube-monkey/schedule"
+	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,4 +70,50 @@ func TestReplaceSchedule(t *testing.T) {
 	svc.ReplaceSchedule(s2)
 	sched3, _ := svc.GetSchedule()
 	assert.NotEqual(t, sched2, sched3)
+}
+
+func TestEndpointWithNoSchedule(t *testing.T) {
+	sched := newSchedule()
+	svc := &scheduleService{sync.RWMutex{}, sched}
+	eps := makeScheduleEndpoint(svc)
+	mux := http.NewServeMux()
+	mux.Handle("/schedule", httptransport.NewServer(
+		eps,
+		func(_ context.Context, r *http.Request) (interface{}, error) { return nil, nil },
+		encodeResponse,
+	))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	{
+		want := `{"schedule":{"victims":[]},"asof":`
+		req, _ := http.NewRequest("GET", srv.URL+"/schedule", strings.NewReader(""))
+		resp, _ := http.DefaultClient.Do(req)
+		body, _ := ioutil.ReadAll(resp.Body)
+		assert.Contains(t, string(body), want)
+	}
+}
+
+func TestEndpointWithSchedule(t *testing.T) {
+	sched := newSchedule()
+	svc := &scheduleService{sync.RWMutex{}, sched}
+	eps := makeScheduleEndpoint(svc)
+	mux := http.NewServeMux()
+	mux.Handle("/schedule", httptransport.NewServer(
+		eps,
+		func(_ context.Context, r *http.Request) (interface{}, error) { return nil, nil },
+		encodeResponse,
+	))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	generatedTime := time.Now()
+	e := chaos.NewMock(&generatedTime)
+	sched.Add(e)
+	{
+		want := fmt.Sprintf(`{"schedule":{"victims":[{"kind":"Pod","namespace":"default","name":"name","killat":"%s"}]},"asof":`, generatedTime.Format(schedule.DateFormat))
+		req, _ := http.NewRequest("GET", srv.URL+"/schedule", strings.NewReader(""))
+		resp, _ := http.DefaultClient.Do(req)
+		body, _ := ioutil.ReadAll(resp.Body)
+		assert.Contains(t, string(body), want)
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/asobti/kube-monkey/schedule"
 	"github.com/go-kit/kit/endpoint"
@@ -24,7 +25,7 @@ func New() ScheduleService {
 
 func ServeSchedule(s ScheduleService, port int) {
 	scheduleHandler := httptransport.NewServer(
-		makeUppercaseEndpoint(s),
+		makeScheduleEndpoint(s),
 		func(_ context.Context, r *http.Request) (interface{}, error) { return nil, nil },
 		encodeResponse,
 	)
@@ -37,16 +38,17 @@ func ServeSchedule(s ScheduleService, port int) {
 
 type getScheduleResponse struct {
 	Schedule json.RawMessage `json:"schedule"`
+	Asof     time.Time       `json:"asof"`
 	Err      string          `json:"err,omitempty"`
 }
 
-func makeUppercaseEndpoint(svc ScheduleService) endpoint.Endpoint {
+func makeScheduleEndpoint(svc ScheduleService) endpoint.Endpoint {
 	return func(_ context.Context, request interface{}) (interface{}, error) {
 		v, err := svc.GetSchedule()
 		if err != nil {
-			return getScheduleResponse{json.RawMessage(v), err.Error()}, nil
+			return getScheduleResponse{json.RawMessage(v), time.Now(), err.Error()}, nil
 		}
-		return getScheduleResponse{json.RawMessage(v), ""}, nil
+		return getScheduleResponse{json.RawMessage(v), time.Now(), ""}, nil
 	}
 }
 
