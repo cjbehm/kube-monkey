@@ -12,6 +12,8 @@ import (
 	"github.com/asobti/kube-monkey/chaos"
 	"github.com/asobti/kube-monkey/config"
 	"github.com/asobti/kube-monkey/kubernetes"
+	"github.com/asobti/kube-monkey/reporting"
+	"github.com/asobti/kube-monkey/reportingService"
 	"github.com/asobti/kube-monkey/schedule"
 	"github.com/asobti/kube-monkey/scheduleService"
 )
@@ -40,7 +42,9 @@ func Run() error {
 	}
 
 	scheduleSvc := scheduleService.New()
+	reportSvc := reportingService.New()
 	scheduleService.ServeSchedule(scheduleSvc)
+	reportingService.ServeReports(reportSvc)
 	go RunServices()
 	for {
 		// Calculate duration to sleep before next run
@@ -54,13 +58,16 @@ func Run() error {
 		scheduleSvc.ReplaceSchedule(schedule)
 		schedule.Print()
 		fmt.Println(schedule)
-		ScheduleTerminations(schedule.Entries())
+		ScheduleTerminations(schedule.Entries(), reportSvc)
 	}
 }
 
-func ScheduleTerminations(entries []*chaos.Chaos) {
+func ScheduleTerminations(entries []*chaos.Chaos, reportSvc reportingService.ReportService) {
 	resultchan := make(chan *chaos.Result)
 	defer close(resultchan)
+
+	runReport := reporting.NewReport()
+	reportSvc.AddReport(runReport)
 
 	// Spin off all terminations
 	for _, chaos := range entries {
@@ -75,6 +82,7 @@ func ScheduleTerminations(entries []*chaos.Chaos) {
 	// Gather results
 	for completedCount < len(entries) {
 		result = <-resultchan
+		runReport.AddEntry(time.Now(), result)
 		if result.Error() != nil {
 			glog.Errorf("Failed to execute termination for %s %s. Error: %v", result.Victim().Kind(), result.Victim().Name(), result.Error().Error())
 		} else {

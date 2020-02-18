@@ -1,27 +1,32 @@
 package reporting
 
 import (
+	"time"
+
 	"github.com/asobti/kube-monkey/chaos"
 )
 
 type ReportEntry struct {
-	Result string
-	Kind   string
-	Name   string
-	Err    string
+	ReportTime time.Time
+	Result     string
+	Kind       string
+	Name       string
+	Err        string
 }
 
 type Report struct {
-	Entries []*ReportEntry
+	ReportAt time.Time      `json:"schedule_built"`
+	Results  []*ReportEntry `json:"results"`
 }
 
 func NewReport() *Report {
-	r := Report{make([]*ReportEntry, 0, 10)}
+	r := Report{time.Now(), make([]*ReportEntry, 0, 10)}
 	return &r
 }
 
-func (r *Report) AddEntry(result *chaos.Result) {
+func (r *Report) AddEntry(resultTime time.Time, result *chaos.Result) {
 	report := &ReportEntry{}
+	report.ReportTime = resultTime
 	if result.Error() != nil {
 		report.Result = "FAIL"
 		report.Err = result.Error().Error()
@@ -32,9 +37,9 @@ func (r *Report) AddEntry(result *chaos.Result) {
 	report.Kind = result.Victim().Kind()
 	report.Name = result.Victim().Name()
 
-	r.Entries = append(r.Entries, report)
+	r.Results = append(r.Results, report)
 }
 
 func (r *Report) Len() int {
-	return len(r.Entries)
+	return len(r.Results)
 }
