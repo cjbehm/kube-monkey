@@ -1,4 +1,4 @@
-package reportService
+package reportingService
 
 import (
 	"context"
