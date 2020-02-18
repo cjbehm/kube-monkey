@@ -3,8 +3,6 @@ package scheduleService
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -23,7 +21,7 @@ func New() ScheduleService {
 	return &scheduleService{sync.RWMutex{}, nil}
 }
 
-func ServeSchedule(s ScheduleService, port int) {
+func ServeSchedule(s ScheduleService) {
 	scheduleHandler := httptransport.NewServer(
 		makeScheduleEndpoint(s),
 		func(_ context.Context, r *http.Request) (interface{}, error) { return nil, nil },
@@ -31,7 +29,6 @@ func ServeSchedule(s ScheduleService, port int) {
 	)
 
 	http.Handle("/schedule", scheduleHandler)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
 // --------------------------------------------

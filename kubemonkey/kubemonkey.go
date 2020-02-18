@@ -2,6 +2,8 @@ package kubemonkey
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"time"
 
 	"github.com/golang/glog"
@@ -26,6 +28,10 @@ func durationToNextRun(runhour int, loc *time.Location) time.Duration {
 	return time.Until(nextRun)
 }
 
+func RunServices() {
+	log.Fatal(http.ListenAndServe(":80", nil))
+}
+
 func Run() error {
 	// Verify kubernetes client can be created and works before
 	// we enter execution loop
@@ -34,7 +40,8 @@ func Run() error {
 	}
 
 	scheduleSvc := scheduleService.New()
-	go scheduleService.ServeSchedule(scheduleSvc, 80)
+	scheduleService.ServeSchedule(scheduleSvc)
+	go RunServices()
 	for {
 		// Calculate duration to sleep before next run
 		sleepDuration := durationToNextRun(config.RunHour(), config.Timezone())
