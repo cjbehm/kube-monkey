@@ -1,1 +1,1 @@
-package reportingService
+package reportingservice

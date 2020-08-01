@@ -13,9 +13,9 @@ import (
 	"github.com/asobti/kube-monkey/config"
 	"github.com/asobti/kube-monkey/kubernetes"
 	"github.com/asobti/kube-monkey/reporting"
-	"github.com/asobti/kube-monkey/reportingService"
+	"github.com/asobti/kube-monkey/reportingservice"
 	"github.com/asobti/kube-monkey/schedule"
-	"github.com/asobti/kube-monkey/scheduleService"
+	"github.com/asobti/kube-monkey/scheduleservice"
 )
 
 func durationToNextRun(runhour int, loc *time.Location) time.Duration {
@@ -41,10 +41,10 @@ func Run() error {
 		return err
 	}
 
-	scheduleSvc := scheduleService.New()
-	reportSvc := reportingService.New()
-	scheduleService.ServeSchedule(scheduleSvc)
-	reportingService.ServeReports(reportSvc)
+	scheduleSvc := scheduleservice.New()
+	reportSvc := reportingservice.New()
+	scheduleservice.ServeSchedule(scheduleSvc)
+	reportingservice.ServeReports(reportSvc)
 	go RunServices()
 	for {
 		// Calculate duration to sleep before next run
@@ -62,7 +62,7 @@ func Run() error {
 	}
 }
 
-func ScheduleTerminations(entries []*chaos.Chaos, reportSvc reportingService.ReportService) {
+func ScheduleTerminations(entries []*chaos.Chaos, reportSvc reportingservice.ReportService) {
 	resultchan := make(chan *chaos.Result)
 	defer close(resultchan)
 
